@@ -29,7 +29,7 @@ util.inherits(textarray, super_);
  * @api public
  */
 
-textarray.prototype.inputIsValid = function(data, required, item) {
+textarray.prototype.validateInput = function(data, required, item) {
 	var value = this.getValueFromData(data);
 
 	if (required) {
@@ -75,4 +75,4 @@ textarray.prototype.updateItem = function(item, data) {
  * Export class
  */
 
-module.exports = textarray;
+exports = module.exports = textarray;

@@ -24,7 +24,7 @@ util.inherits(money, FieldType);
 
 /* Inherit from NumberType prototype */
 money.prototype.updateItem = NumberType.prototype.updateItem;
-money.prototype.inputIsValid = NumberType.prototype.inputIsValid;
+money.prototype.validateInput = NumberType.prototype.validateInput;
 
 /**
  * Formats the field value
@@ -46,4 +46,4 @@ money.prototype.format = function(item, format) {
 };
 
 /* Export Field Type */
-module.exports = money;
+exports = module.exports = money;

@@ -1,8 +1,6 @@
 var _ = require('underscore');
 var FieldType = require('../Type');
 var util = require('util');
-var utils = require('keystone-utils');
-var displayName = require('display-name');
 
 /**
  * Name FieldType Constructor
@@ -10,8 +8,7 @@ var displayName = require('display-name');
  * @api public
  */
 function name(list, path, options) {
-	this._fixedSize = 'full';
-	options.default = { first: '', last: '' };
+	this._fixedSize = 'large';
 	options.nofilter = true; // TODO: remove this when 0.4 is merged
 	name.super_.call(this, list, path, options);
 }
@@ -42,7 +39,7 @@ name.prototype.addToSchema = function() {
 	}, this.path + '.');
 
 	schema.virtual(paths.full).get(function () {
-		return displayName(this.get(paths.first), this.get(paths.last));
+		return _.compact([this.get(paths.first), this.get(paths.last)]).join(' ');
 	});
 
 	schema.virtual(paths.full).set(function(value) {
@@ -60,56 +57,6 @@ name.prototype.addToSchema = function() {
 };
 
 /**
- * Gets the string to use for sorting by this field
- */
-
-name.prototype.getSortString = function(options) {
-	if (options.invert) {
-		return '-' + this.paths.first + ' -' + this.paths.last;
-	}
-	return this.paths.first + ' ' + this.paths.last;
-};
-
-/**
- * Add filters to a query
- *
- * TODO: this filter will conflict with any other $or filter, including filters
- * on other "name" type fields; need to work out a better way to implement.
- */
-name.prototype.addFilterToQuery = function(filter, query) {
-	query = query || {};
-	if (filter.mode === 'exactly' && !filter.value) {
-		query[this.paths.first] = query[this.paths.last] = filter.inverted ? { $nin: ['', null] } : { $in: ['', null] };
-		return;
-	}
-	var value = utils.escapeRegExp(filter.value);
-	if (filter.mode === 'startsWith') {
-		value = '^' + value;
-	} else if (filter.mode === 'endsWith') {
-		value = value + '$';
-	} else if (filter.mode === 'exactly') {
-		value = '^' + value + '$';
-	}
-	value = new RegExp(value, filter.caseSensitive ? '' : 'i');
-	if (filter.inverted) {
-		query[this.paths.first] = query[this.paths.last] = { $not: value };
-	} else {
-		var first = {}; first[this.paths.first] = value;
-		var last = {}; last[this.paths.last] = value;
-		var $or = [first, last];
-		if (query.$and) {
-			query.$and.push({ $or: $or });
-		} else if (query.$or) {
-			query.$and = [{ $or: query.$or }, { $or: $or }];
-			delete query.$or;
-		} else {
-			query.$or = $or;
-		}
-	}
-	return query;
-};
-
-/**
  * Formats the field value
  */
 
@@ -120,7 +67,7 @@ name.prototype.format = function(item) {
 /**
  * Validates that a value for this field has been provided in a data object
  */
-name.prototype.inputIsValid = function(data, required, item) {
+name.prototype.validateInput = function(data, required, item) {
 	// Input is valid if none was provided, but the item has data
 	if (!(this.path in data || this.paths.first in data || this.paths.last in data || this.paths.full in data) && item && item.get(this.paths.full)) return true;
 	// Input is valid if the field is not required
@@ -178,4 +125,4 @@ name.prototype.updateItem = function(item, data) {
 
 
 /* Export Field Type */
-module.exports = name;
+exports = module.exports = name;

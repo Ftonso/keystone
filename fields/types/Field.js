@@ -1,17 +1,11 @@
-import classnames from 'classnames';
-import evalDependsOn from '../utils/evalDependsOn.js';
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { Button, FormField, FormInput, FormNote } from 'elemental';
-import blacklist from 'blacklist';
-
-function isObject(arg) {
-	return Object.prototype.toString.call(arg) === '[object Object]';
-}
+var _ = require('underscore');
+var cx = require('classnames');
+var evalDependsOn = require('../utils/evalDependsOn.js');
+var React = require('react');
+var Note = require('../components/Note');
 
 function validateSpec(spec) {
-	if (!spec) spec = {};
-	if (!isObject(spec.supports)) {
+	if (!_.isObject(spec.supports)) {
 		spec.supports = {};
 	}
 	if (!spec.focusTargetRef) {
@@ -21,134 +15,150 @@ function validateSpec(spec) {
 }
 
 var Base = module.exports.Base = {
-	getInitialState () {
+	
+	getInitialState: function() {
 		return {};
 	},
-	getDefaultProps () {
-		return {
-			adminPath: Keystone.adminPath,
-			inputProps: {},
-			labelProps: {},
-			valueProps: {},
-			size: 'full'
-		};
-	},
-	valueChanged (event) {
+	
+	valueChanged: function(event) {
 		this.props.onChange({
 			path: this.props.path,
 			value: event.target.value
 		});
 	},
-	shouldCollapse () {
+		
+	shouldCollapse: function() {
 		return this.props.collapse && !this.props.value;
 	},
-	shouldRenderField () {
+	
+	shouldRenderField: function() {
 		if (!this.props.noedit) return true;
 		if (this.props.mode === 'create' && this.props.initial) return true;
 		return false;
 	},
-	focus () {
+	
+	focus: function() {
 		if (!this.refs[this.spec.focusTargetRef]) return;
-		ReactDOM.findDOMNode(this.refs[this.spec.focusTargetRef]).focus();
+		this.refs[this.spec.focusTargetRef].getDOMNode().focus();
 	},
-	renderNote () {
+	
+	renderLabel: function() {
+		if (!this.props.label) return null;
+		return <label className="field-label">{this.props.label}</label>;
+	},
+	
+	renderNote: function() {
 		if (!this.props.note) return null;
-		return <FormNote note={this.props.note} />;
+		return <Note note={this.props.note} />;
 	},
-	renderField () {
-		var props = Object.assign(this.props.inputProps, {
-			autoComplete: 'off',
-			name: this.props.path,
-			onChange: this.valueChanged,
-			ref: 'focusTarget',
-			value: this.props.value
-		});
-		return <FormInput {...props} />;
+	
+	renderField: function() {
+		return <input type="text" ref="focusTarget" name={this.props.path} placeholder={this.props.placeholder} value={this.props.value} onChange={this.valueChanged} autoComplete="off" className="form-control" />;
 	},
-	renderValue () {
-		return <FormInput noedit>{this.props.value}</FormInput>;
+	
+	renderValue: function() {
+		return <div className="field-value">{this.props.value}</div>;
 	},
-	renderUI () {
-		var wrapperClassName = classnames(
-			('field-type-' + this.props.type),
-			this.props.className
-		);
+	
+	renderUI: function(spec) {//eslint-disable-line no-unused-vars
+		var wrapperClassName = cx('field', 'field-type-' + this.props.type, this.props.className, { 'field-has-label': this.props.label });
+		var fieldClassName = cx('field-ui', 'field-size-' + this.props.size);
 		return (
-			<FormField label={this.props.label} className={wrapperClassName} htmlFor={this.props.path}>
-				<div className={'FormField__inner field-size-' + this.props.size}>
+			<div className={wrapperClassName}>
+				{this.renderLabel()}
+				<div className={fieldClassName}>
 					{this.shouldRenderField() ? this.renderField() : this.renderValue()}
+					{this.renderNote()}
 				</div>
-				{this.renderNote()}
-			</FormField>
+			</div>
 		);
+		
 	}
+	
 };
 
 var Mixins = module.exports.Mixins = {
+	
 	Collapse: {
-		componentWillMount () {
+		
+		componentWillMount: function() {
 			this.setState({
 				isCollapsed: this.shouldCollapse()
 			});
 		},
-		componentDidUpdate (prevProps, prevState) {
+		
+		componentDidUpdate: function(prevProps, prevState) {
 			if (prevState.isCollapsed && !this.state.isCollapsed) {
 				this.focus();
 			}
 		},
-		uncollapse () {
+		
+		uncollapse: function() {
 			this.setState({
 				isCollapsed: false
 			});
 		},
-		renderCollapse () {
-			if (!this.shouldRenderField()) return null;
+		
+		renderCollapse: function() {
+			if (!this.shouldRenderField()) {
+				return null;
+			}
+			/* eslint-disable no-script-url */
 			return (
-				<FormField>
-					<Button type="link" className="collapsed-field-label" onClick={this.uncollapse}>+ Add {this.props.label.toLowerCase()}</Button>
-				</FormField>
+				<div className={'field field-type-' + this.props.type}>
+					<div className="col-sm-12">
+						<label className="uncollapse">
+							<a href="javascript:;" onClick={this.uncollapse}>+ Add {this.props.label.toLowerCase()}</a>
+						</label>
+					</div>
+				</div>
 			);
+			/* eslint-enable */
 		}
 	}
 };
 
 module.exports.create = function(spec) {
-
-	spec = validateSpec(spec);
-
+	
+	spec = validateSpec(spec || {});
+	
+	var excludeBaseMethods = [];
+	
 	var field = {
+		
 		spec: spec,
+		
 		displayName: spec.displayName,
+		
 		mixins: [Mixins.Collapse],
-		render () {
+		
+		render: function() {
 			if (!evalDependsOn(this.props.dependsOn, this.props.values)) {
 				return null;
 			}
 			if (this.state.isCollapsed) {
 				return this.renderCollapse();
 			}
-			return this.renderUI();
+			return this.renderUI(spec);
 		}
+		
 	};
-
-	var excludeBaseMethods = {};
+	
 	if (spec.mixins) {
-		spec.mixins.forEach(function(mixin) {
-			Object.keys(mixin).forEach(function(name) {
-				if (Base[name]) {
-					excludeBaseMethods[name] = true;
-				}
+		_.each(spec.mixins, function(mixin) {
+			_.each(mixin, function(method, name) {
+				if (Base[name]) excludeBaseMethods.push(name);
 			});
 		});
 	}
-
-	Object.assign(field, blacklist(Base, excludeBaseMethods));
-	Object.assign(field, blacklist(spec, 'mixins'));
-
-	if (Array.isArray(spec.mixins)) {
+	
+	_.extend(field, _.omit(Base, excludeBaseMethods));
+	_.extend(field, _.omit(spec, 'mixins'));
+	
+	if (_.isArray(spec.mixins)) {
 		field.mixins = field.mixins.concat(spec.mixins);
 	}
-
+	
 	return React.createClass(field);
-
+	
 };

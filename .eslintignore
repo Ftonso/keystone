@@ -1,9 +1,7 @@
-admin/bundles/*
+docs/*
 admin/public/js/lib/*
 admin/public/js/packages.js
-bundles/*
-coverage/*
-docs/*
-fields/types/**/lib/*
-node_modules/*
 test/*
+node_modules/*
+coverage/*
+fields/types/**/lib/*

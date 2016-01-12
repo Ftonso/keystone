@@ -21,4 +21,4 @@ util.inherits(html, FieldType);
 html.prototype.addFilterToQuery = TextType.prototype.addFilterToQuery;
 
 /* Export Field Type */
-module.exports = html;
+exports = module.exports = html;

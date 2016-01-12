@@ -11,7 +11,7 @@ var util = require('util');
 function date(list, path, options) {
 	this._nativeType = Date;
 	this._underscoreMethods = ['format', 'moment', 'parse'];
-	this._fixedSize = 'medium';
+	this._fixedSize = 'large';
 	this._properties = ['formatString', 'yearRange', 'isUTC'];
 	this.parseFormatString = options.parseFormat || 'YYYY-MM-DD';
 	this.formatString = (options.format === false) ? false : (options.format || 'Do MMM YYYY');
@@ -30,12 +30,9 @@ util.inherits(date, FieldType);
 date.prototype.addFilterToQuery = function(filter, query) {
 	query = query || {};
 	if (filter.mode === 'between') {
-		
 		if (filter.after && filter.before) {
-			
 			filter.after = moment(filter.after);
 			filter.before = moment(filter.before);
-			
 			if (filter.after.isValid() && filter.before.isValid()) {
 				query[this.path] = {
 					$gte: filter.after.startOf('day').toDate(),
@@ -43,31 +40,20 @@ date.prototype.addFilterToQuery = function(filter, query) {
 				};
 			}
 		}
-		
 	} else if (filter.value) {
-		
-		var day = {
-			moment: moment(filter.value)
-		};
-		day.start = day.moment.startOf('day').toDate();
-		day.end = moment(filter.value).endOf('day').toDate();
-		
-		if (day.moment.isValid()) {
+		filter.value = moment(filter.value);
+		if (filter.value.isValid()) {
+			var after = filter.value.startOf('day').toDate();
+			var before = filter.value.endOf('day').toDate();
 			if (filter.mode === 'after') {
-				query[this.path] = { $gt: day.end };
+				query[this.path] = { $gte: after };
 			} else if (filter.mode === 'before') {
-				query[this.path] = { $lt: day.start };
+				query[this.path] = { $lte: before };
 			} else {
-				query[this.path] = { $gte: day.start, $lte: day.end };
+				query[this.path] = { $gte: after, $lte: before };
 			}
 		}
-		
 	}
-	
-	if (filter.inverted) {
-		query[this.path] =  { $not: query[this.path] };	
-	}
-
 	return query;
 };
 
@@ -105,7 +91,7 @@ date.prototype.parse = function(item) {
  * Checks that a valid date has been provided in a data object
  * An empty value clears the stored value and is considered valid
  */
-date.prototype.inputIsValid = function(data, required, item) {
+date.prototype.validateInput = function(data, required, item) {
 	if (!(this.path in data) && item && item.get(this.path)) return true;
 	var newValue = moment(data[this.path], this.parseFormatString);
 	if (required && (!newValue.isValid())) {
@@ -136,4 +122,4 @@ date.prototype.updateItem = function(item, data) {
 };
 
 /* Export Field Type */
-module.exports = date;
+exports = module.exports = date;
