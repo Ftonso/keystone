@@ -15,12 +15,12 @@ exports = module.exports = function(req, res) {
 	if (req.method === 'POST') {
 
 		if (!keystone.security.csrf.validate(req)) {
-			req.flash('error', 'There was an error with your request, please try again.');
+			req.flash('error', 'Houve um erro no processamento, tente novamente depois.');
 			return renderView();
 		}
 
 		if (!req.body.email || !req.body.password) {
-			req.flash('error', 'Please enter your email address and password.');
+			req.flash('error', 'Por favor preencha ambos os campos.');
 			return renderView();
 		}
 
@@ -33,13 +33,13 @@ exports = module.exports = function(req, res) {
 			} else if ('function' === typeof keystone.get('signin redirect')) {
 				keystone.get('signin redirect')(user, req, res);
 			} else {
-				res.redirect('/keystone');
+				res.redirect('/');
 			}
 
 		};
 
 		var onFail = function (err) {
-			var message = (err && err.message) ? err.message : 'Sorry, that email and password combo are not valid.';
+			var message = (err && err.message) ? err.message : 'Sua senha ou usuario estao incorretos, por favor certifique-se de que os dados digitados estao corretos.';
 			req.flash('error', message );
 			renderView();
 		};
